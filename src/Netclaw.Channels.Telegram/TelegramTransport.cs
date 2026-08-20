@@ -4,6 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 using Netclaw.Configuration;
+using Netclaw.Media;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -361,8 +362,26 @@ public sealed class TelegramTransport(
         }
     }
 
-    private static IReadOnlyList<TelegramFileReference> MapFiles(Message message)
+    internal static IReadOnlyList<TelegramFileReference> MapFiles(Message message)
     {
+        if (message.Voice is { } voice)
+        {
+            return [new TelegramFileReference(
+                voice.FileId,
+                $"telegram-voice-{message.Id}.ogg",
+                MimeTypeCatalog.AudioOgg,
+                voice.FileSize ?? 0)];
+        }
+
+        if (message.Audio is { } audio)
+        {
+            return [new TelegramFileReference(
+                audio.FileId,
+                audio.FileName ?? $"telegram-audio-{message.Id}.mp3",
+                audio.MimeType ?? MimeTypeCatalog.AudioMpeg,
+                audio.FileSize ?? 0)];
+        }
+
         if (message.Document is { } document)
         {
             return [new TelegramFileReference(
