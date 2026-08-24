@@ -102,7 +102,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
             return [];
         }
 
-        var inlineImages = _modelCapabilities.InputModalities.HasFlag(ModelModality.Image);
+        var inputModalities = _modelCapabilities.InputModalities;
         var inboxDir = SessionDirectoryHelper.GetOrCreateInboxDirectory(sessionId, _paths.SessionsDirectory);
         var stagingDir = SessionDirectoryHelper.GetOrCreateAttachmentStagingDirectory(sessionId, _paths.SessionsDirectory);
 
@@ -153,7 +153,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
                     trustResult.Audience,
                     trustResult.Principal,
                     attachmentPolicy,
-                    inlineImages,
+                    inputModalities,
                     inboxDir,
                     stagingDir,
                     cancellationToken);
@@ -178,7 +178,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
         TrustAudience audience,
         PrincipalClassification principal,
         ChannelAttachmentPolicy attachmentPolicy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -208,7 +208,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
                     file,
                     audience,
                     attachmentPolicy,
-                    inlineImages,
+                    inputModalities,
                     inboxDir,
                     stagingDir,
                     cancellationToken));
@@ -253,7 +253,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
         DiscordFileReference file,
         TrustAudience audience,
         ChannelAttachmentPolicy policy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -275,7 +275,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
             return cached is HistoricalAttachmentIngress.ScanOutcome.Verified cachedOk
                 ? await AttachmentIngressFormatting.BuildAcceptedContentsAsync(
                     existingPath, file.Name, cachedOk.MimeType.Value, cachedOk.Category,
-                    inlineImages, existingSize, cancellationToken)
+                    inputModalities, existingSize, cancellationToken)
                 : [((HistoricalAttachmentIngress.ScanOutcome.Rejected)cached).Note];
         }
 
@@ -368,7 +368,7 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
             file.Name,
             verifiedMime.Value,
             verifiedCategory,
-            inlineImages,
+            inputModalities,
             downloadResult.BytesWritten,
             cancellationToken);
     }

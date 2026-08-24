@@ -4,6 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 using Netclaw.Actors.Channels;
+using Netclaw.Configuration;
 using Netclaw.Media;
 using Xunit;
 
@@ -19,7 +20,7 @@ public sealed class AttachmentInlineDecisionTests
     public void Model_input_image_types_inline_when_model_accepts_images(string mimeType)
     {
         var (inlined, note) = AttachmentInlineDecision.Resolve(
-            new MimeType(mimeType), AttachmentCategory.Image, inlineImages: true);
+            new MimeType(mimeType), AttachmentCategory.Image, ModelModality.Image);
 
         Assert.True(inlined);
         Assert.Null(note);
@@ -33,7 +34,7 @@ public sealed class AttachmentInlineDecisionTests
         // bmp/tiff are accepted as images but must NOT be inlined as DataContent,
         // or they would hit the image-only provider serialization guardrail.
         var (inlined, note) = AttachmentInlineDecision.Resolve(
-            new MimeType(mimeType), AttachmentCategory.Image, inlineImages: true);
+            new MimeType(mimeType), AttachmentCategory.Image, ModelModality.Image);
 
         Assert.False(inlined);
         Assert.NotNull(note);
@@ -43,9 +44,49 @@ public sealed class AttachmentInlineDecisionTests
     public void Images_are_path_only_when_model_lacks_image_modality()
     {
         var (inlined, note) = AttachmentInlineDecision.Resolve(
-            new MimeType("image/png"), AttachmentCategory.Image, inlineImages: false);
+            new MimeType("image/png"), AttachmentCategory.Image, ModelModality.None);
 
         Assert.False(inlined);
         Assert.NotNull(note);
+        Assert.Equal(AttachmentNotes.ModelMissingImage, note);
+    }
+
+    [Theory]
+    [InlineData("audio/mpeg")]
+    [InlineData("audio/wav")]
+    public void Input_audio_types_inline_when_model_accepts_audio(string mimeType)
+    {
+        var (inlined, note) = AttachmentInlineDecision.Resolve(
+            new MimeType(mimeType), AttachmentCategory.Media, ModelModality.Audio);
+
+        Assert.True(inlined);
+        Assert.Null(note);
+    }
+
+    [Theory]
+    [InlineData("audio/mp4")]
+    [InlineData("audio/ogg")]
+    public void Audio_types_the_provider_cannot_ingest_are_path_only(string mimeType)
+    {
+        // ogg/m4a are accepted as audio but must NOT be inlined as DataContent,
+        // or they would hit the audio serialization guardrail. The OpenAI wire
+        // format only supports wav and mp3.
+        var (inlined, note) = AttachmentInlineDecision.Resolve(
+            new MimeType(mimeType), AttachmentCategory.Media, ModelModality.Audio);
+
+        Assert.False(inlined);
+        Assert.NotNull(note);
+        Assert.Equal(AttachmentNotes.FormatNotInlineable, note);
+    }
+
+    [Fact]
+    public void Audio_is_path_only_when_model_lacks_audio_modality()
+    {
+        var (inlined, note) = AttachmentInlineDecision.Resolve(
+            new MimeType("audio/mpeg"), AttachmentCategory.Media, ModelModality.None);
+
+        Assert.False(inlined);
+        Assert.NotNull(note);
+        Assert.Equal(AttachmentNotes.ModelMissingAudio, note);
     }
 }

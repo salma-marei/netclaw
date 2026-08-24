@@ -357,7 +357,7 @@ data: [DONE]
     }
 
     [Fact]
-    public void ToMessage_NonImageDataContent_ThrowsBeforeImageUrlSerialization()
+    public void ToMessage_NonMediaDataContent_ThrowsBeforeSerialization()
     {
         var msg = new ChatMessage(ChatRole.User,
         [
@@ -365,8 +365,72 @@ data: [DONE]
         ]);
 
         var ex = Assert.Throws<InvalidOperationException>(() => OpenAiCompatibleChatClient.ToMessage(msg));
-        Assert.Contains("only supports image DataContent", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("only supports image or input_audio DataContent", ex.Message, StringComparison.Ordinal);
         Assert.Contains("application/pdf", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("audio/wav", "wav")]
+    [InlineData("audio/mpeg", "mp3")]
+    public void ToMessage_SupportedAudioDataContent_ProducesInputAudio(string mimeType, string expectedFormat)
+    {
+        var audioBytes = new byte[] { 0x52, 0x49, 0x46, 0x46 }; // RIFF header stub
+        var msg = new ChatMessage(ChatRole.User,
+        [
+            new DataContent(audioBytes, mimeType)
+        ]);
+
+        var result = OpenAiCompatibleChatClient.ToMessage(msg);
+
+        var content = result["content"]!.AsArray();
+        Assert.Single(content);
+        Assert.Equal("input_audio", content[0]!["type"]!.GetValue<string>());
+        Assert.Equal(expectedFormat, content[0]!["input_audio"]!["format"]!.GetValue<string>());
+        Assert.Equal(Convert.ToBase64String(audioBytes), content[0]!["input_audio"]!["data"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void ToMessage_TextAndAudio_ProducesContentArray()
+    {
+        var audioBytes = new byte[] { 0x52, 0x49, 0x46, 0x46 }; // RIFF header stub
+        var msg = new ChatMessage(ChatRole.User,
+        [
+            new TextContent("What does this say?"),
+            new DataContent(audioBytes, "audio/wav")
+        ]);
+
+        var result = OpenAiCompatibleChatClient.ToMessage(msg);
+
+        Assert.Equal("user", result["role"]!.GetValue<string>());
+        var content = result["content"]!.AsArray();
+        Assert.Equal(2, content.Count);
+
+        // First part should be text
+        Assert.Equal("text", content[0]!["type"]!.GetValue<string>());
+        Assert.Equal("What does this say?", content[0]!["text"]!.GetValue<string>());
+
+        // Second part should be input_audio with base64 data and format
+        Assert.Equal("input_audio", content[1]!["type"]!.GetValue<string>());
+        Assert.Equal("wav", content[1]!["input_audio"]!["format"]!.GetValue<string>());
+        Assert.Equal(Convert.ToBase64String(audioBytes), content[1]!["input_audio"]!["data"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("audio/ogg")]
+    [InlineData("audio/mp4")]
+    public void ToMessage_UnsupportedAudioDataContent_Throws(string mimeType)
+    {
+        // ogg/m4a cannot be serialized as OpenAI input_audio. Channel ingress
+        // gates these to path-only, but a direct DataContent must still fail
+        // loudly rather than emit a malformed payload.
+        var msg = new ChatMessage(ChatRole.User,
+        [
+            new DataContent(new byte[] { 1, 2, 3 }, mimeType)
+        ]);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => OpenAiCompatibleChatClient.ToMessage(msg));
+        Assert.Contains("only supports image or input_audio DataContent", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(mimeType, ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------
 using Netclaw.Actors.Protocol;
 using Netclaw.Channels;
+using Netclaw.Configuration;
 using Netclaw.Media;
 using Xunit;
 
@@ -81,7 +82,7 @@ public sealed class SlackAttachmentLineTests
                 "image.png",
                 "image/png",
                 AttachmentCategory.Image,
-                inlineImages: true,
+                inputModalities: ModelModality.Image,
                 size: 1,
                 TestContext.Current.CancellationToken);
 
@@ -114,7 +115,7 @@ public sealed class SlackAttachmentLineTests
                 "image.png",
                 "image/png",
                 AttachmentCategory.Image,
-                inlineImages: true,
+                inputModalities: ModelModality.Image,
                 size: 3,
                 TestContext.Current.CancellationToken);
 

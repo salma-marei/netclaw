@@ -131,6 +131,28 @@ public static class MimeTypeCatalog
     public static bool IsModelInputSupported(MimeType mimeType) =>
         TryGet(mimeType, out var definition) && definition.SupportsModelInput;
 
+    /// <summary>
+    /// Maps an audio MIME type to the <c>format</c> string of an
+    /// OpenAI-compatible <c>input_audio</c> content part. Only mp3 and wav are
+    /// supported by the OpenAI wire format; other audio types return
+    /// <see langword="false"/>.
+    /// </summary>
+    public static bool TryGetInputAudioFormat(MimeType mimeType, out string format)
+    {
+        switch (mimeType.Value)
+        {
+            case AudioMpeg:
+                format = "mp3";
+                return true;
+            case AudioWav:
+                format = "wav";
+                return true;
+            default:
+                format = string.Empty;
+                return false;
+        }
+    }
+
     public static bool TryGetFromPathExtension(string path, out MimeType mimeType) =>
         TryGetFromExtension(FileExtension.FromPath(path), out mimeType);
 

@@ -533,13 +533,13 @@ internal sealed class SlackThreadBindingActor : ReceivePersistentActor, IWithTim
         }
 
         // Resolve the capability view once per message — the active model's
-        // InputModalities determine whether images get inlined as DataContent
-        // versus path-only announcements. PDFs are always path-only: no
-        // provider plugin currently serializes application/pdf inline, and
-        // the agent can always read them from inbox/ via shell_execute +
-        // pdftotext or other file tools.
+        // InputModalities determine whether images and audio get inlined as
+        // DataContent versus path-only announcements. PDFs are always
+        // path-only: no provider plugin currently serializes application/pdf
+        // inline, and the agent can always read them from inbox/ via
+        // shell_execute + pdftotext or other file tools.
         var modelCapabilities = _dependencies.ModelCapabilities;
-        var inlineImages = modelCapabilities.InputModalities.HasFlag(ModelModality.Image);
+        var inputModalities = modelCapabilities.InputModalities;
 
         var acceptedLines = new List<string>(files.Count);
         var dataContents = new List<DataContent>();
@@ -554,7 +554,7 @@ internal sealed class SlackThreadBindingActor : ReceivePersistentActor, IWithTim
                 file,
                 audience,
                 policy,
-                inlineImages,
+                inputModalities,
                 inboxDir,
                 stagingDir,
                 cancellationToken);
@@ -592,7 +592,7 @@ internal sealed class SlackThreadBindingActor : ReceivePersistentActor, IWithTim
         SlackFileReference file,
         TrustAudience audience,
         ChannelAttachmentPolicy policy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -600,7 +600,7 @@ internal sealed class SlackThreadBindingActor : ReceivePersistentActor, IWithTim
             new AttachmentIngressRequest(file.Name, file.MimeType, file.Size),
             audience,
             policy,
-            inlineImages,
+            inputModalities,
             inboxDir,
             stagingDir,
             OperationTimeout,

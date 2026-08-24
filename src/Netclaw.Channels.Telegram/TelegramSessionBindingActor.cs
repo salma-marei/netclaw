@@ -204,7 +204,7 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
             return;
         }
 
-        var inlineImages = _dependencies.ModelCapabilities.InputModalities.HasFlag(ModelModality.Image);
+        var inputModalities = _dependencies.ModelCapabilities.InputModalities;
         var inbox = SessionDirectoryHelper.GetOrCreateInboxDirectory(
             _sessionId,
             _dependencies.Paths.SessionsDirectory);
@@ -219,7 +219,7 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
                 new AttachmentIngressRequest(file.Name, file.MimeType, file.Size),
                 audience,
                 policy,
-                inlineImages,
+                inputModalities,
                 inbox,
                 staging,
                 TimeSpan.FromSeconds(30),

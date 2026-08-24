@@ -25,6 +25,15 @@ public static class AttachmentNotes
         "current model has no image modality; file is on disk but not viewable this turn";
 
     /// <summary>
+    /// Model-modality gap note for an audio attachment on a model that
+    /// does not report <c>ModelModality.Audio</c> as an input modality.
+    /// MUST begin with <c>"current model has no audio modality"</c> per
+    /// the spec so the agent's dynamic-context hint can detect this class.
+    /// </summary>
+    public const string ModelMissingAudio =
+        "current model has no audio modality; file is on disk but not audible this turn";
+
+    /// <summary>
     /// Model-modality gap note for a PDF attachment on a model that does
     /// not natively accept <c>application/pdf</c> as input. MUST begin
     /// with <c>"current model has no native PDF support"</c> per the spec.

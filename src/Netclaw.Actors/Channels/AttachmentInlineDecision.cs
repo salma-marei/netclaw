@@ -3,6 +3,7 @@
 //      Copyright (C) 2026 - 2026 Petabridge, LLC <https://petabridge.com>
 // </copyright>
 // -----------------------------------------------------------------------
+using Netclaw.Configuration;
 using Netclaw.Media;
 
 namespace Netclaw.Actors.Channels;
@@ -12,11 +13,20 @@ namespace Netclaw.Actors.Channels;
 /// </summary>
 public static class AttachmentInlineDecision
 {
-    public static (bool Inlined, string? Note) Resolve(MimeType mimeType, AttachmentCategory category, bool inlineImages)
+    /// <summary>
+    /// Image-only convenience overload used by the tool-driven model-input
+    /// path. Keeps the file-read call sites byte-identical.
+    /// </summary>
+    public static (bool Inlined, string? Note) Resolve(
+        MimeType mimeType, AttachmentCategory category, bool inlineImages)
+        => Resolve(mimeType, category, inlineImages ? ModelModality.Image : ModelModality.None);
+
+    public static (bool Inlined, string? Note) Resolve(
+        MimeType mimeType, AttachmentCategory category, ModelModality inputModalities)
     {
         if (category == AttachmentCategory.Image)
         {
-            if (!inlineImages)
+            if (!inputModalities.HasFlag(ModelModality.Image))
                 return (false, AttachmentNotes.ModelMissingImage);
 
             // Only inline image types the provider can actually ingest as model
@@ -24,6 +34,20 @@ public static class AttachmentInlineDecision
             // accepted but delivered path-only, so they never reach the
             // image-only provider serialization path.
             return MimeTypeCatalog.IsModelInputSupported(mimeType)
+                ? (true, null)
+                : (false, AttachmentNotes.FormatNotInlineable);
+        }
+
+        if (category == AttachmentCategory.Media
+            && MimeTypeCatalog.GetMediaKind(mimeType) == MediaKind.Audio)
+        {
+            if (!inputModalities.HasFlag(ModelModality.Audio))
+                return (false, AttachmentNotes.ModelMissingAudio);
+
+            // Only mp3/wav can be serialized as OpenAI-compatible input_audio.
+            // Other audio formats (e.g. ogg/m4a) are accepted but delivered
+            // path-only, so they never reach the audio serialization path.
+            return MimeTypeCatalog.TryGetInputAudioFormat(mimeType, out _)
                 ? (true, null)
                 : (false, AttachmentNotes.FormatNotInlineable);
         }

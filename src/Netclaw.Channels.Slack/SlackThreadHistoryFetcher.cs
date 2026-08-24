@@ -120,7 +120,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
         SlackThreadTs threadTs,
         CancellationToken cancellationToken)
     {
-        var inlineImages = _modelCapabilities.InputModalities.HasFlag(ModelModality.Image);
+        var inputModalities = _modelCapabilities.InputModalities;
 
         var results = new List<ChannelInput>();
         string? cursor = null;
@@ -186,7 +186,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
                     trustResult.Audience,
                     trustResult.Principal,
                     attachmentPolicy,
-                    inlineImages,
+                    inputModalities,
                     inboxDir,
                     stagingDir,
                     cancellationToken);
@@ -213,7 +213,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
         TrustAudience audience,
         PrincipalClassification principal,
         ChannelAttachmentPolicy attachmentPolicy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -247,7 +247,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
                     file,
                     audience,
                     attachmentPolicy,
-                    inlineImages,
+                    inputModalities,
                     inboxDir,
                     stagingDir,
                     cancellationToken));
@@ -293,7 +293,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
         SlackNet.File file,
         TrustAudience audience,
         ChannelAttachmentPolicy policy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -317,7 +317,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
             return cached is HistoricalAttachmentIngress.ScanOutcome.Verified cachedOk
                 ? await AttachmentIngressFormatting.BuildAcceptedContentsAsync(
                     existingPath, filename, cachedOk.MimeType.Value, cachedOk.Category,
-                    inlineImages, existingSize, cancellationToken)
+                    inputModalities, existingSize, cancellationToken)
                 : [((HistoricalAttachmentIngress.ScanOutcome.Rejected)cached).Note];
         }
 
@@ -401,7 +401,7 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
             filename,
             verifiedMime.Value,
             verifiedCategory,
-            inlineImages,
+            inputModalities,
             downloadResult.BytesWritten,
             cancellationToken);
     }

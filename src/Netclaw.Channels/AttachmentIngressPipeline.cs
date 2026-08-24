@@ -56,7 +56,7 @@ public static class AttachmentIngressPipeline
         AttachmentIngressRequest request,
         TrustAudience audience,
         ChannelAttachmentPolicy policy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         TimeSpan operationTimeout,
@@ -206,7 +206,7 @@ public static class AttachmentIngressPipeline
             name,
             verifiedMime.Value,
             verifiedCategory,
-            inlineImages,
+            inputModalities,
             downloadResult.BytesWritten,
             cancellationToken);
 

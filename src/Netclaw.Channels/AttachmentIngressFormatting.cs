@@ -6,6 +6,7 @@
 using Microsoft.Extensions.AI;
 using Netclaw.Actors.Channels;
 using Netclaw.Actors.Protocol;
+using Netclaw.Configuration;
 using Netclaw.Media;
 using Netclaw.Security;
 using System.Text;
@@ -68,20 +69,20 @@ public static class AttachmentIngressFormatting
     public static (bool Inlined, string? Note) ResolveInlineDecision(
         MimeType mimeType,
         AttachmentCategory category,
-        bool inlineImages)
-        => AttachmentInlineDecision.Resolve(mimeType, category, inlineImages);
+        ModelModality inputModalities)
+        => AttachmentInlineDecision.Resolve(mimeType, category, inputModalities);
 
     public static async Task<AttachmentIngressProjection> BuildAcceptedProjectionAsync(
         string inboxPath,
         string filename,
         string mimeType,
         AttachmentCategory category,
-        bool inlineImages,
+        ModelModality inputModalities,
         long size,
         CancellationToken cancellationToken)
     {
         var relativePath = $"{SessionDirectoryHelper.InboxSubdirectory}/{Path.GetFileName(inboxPath)}";
-        var (inlined, note) = ResolveInlineDecision(new MimeType(mimeType), category, inlineImages);
+        var (inlined, note) = ResolveInlineDecision(new MimeType(mimeType), category, inputModalities);
         var line = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined, note);
 
         if (!inlined)
@@ -96,12 +97,12 @@ public static class AttachmentIngressFormatting
         string filename,
         string mimeType,
         AttachmentCategory category,
-        bool inlineImages,
+        ModelModality inputModalities,
         long size,
         CancellationToken cancellationToken)
     {
         var projection = await BuildAcceptedProjectionAsync(
-            inboxPath, filename, mimeType, category, inlineImages, size, cancellationToken);
+            inboxPath, filename, mimeType, category, inputModalities, size, cancellationToken);
         var line = new TextContent(projection.Line);
         return projection.InlineContent is null
             ? [line]

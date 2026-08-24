@@ -1559,7 +1559,7 @@ internal sealed class DiscordSessionBindingActor : ReceivePersistentActor, IWith
         }
 
         var modelCapabilities = _dependencies.ModelCapabilities;
-        var inlineImages = modelCapabilities.InputModalities.HasFlag(ModelModality.Image);
+        var inputModalities = modelCapabilities.InputModalities;
 
         var acceptedLines = new List<string>(files.Count);
         var dataContents = new List<DataContent>();
@@ -1571,7 +1571,7 @@ internal sealed class DiscordSessionBindingActor : ReceivePersistentActor, IWith
         foreach (var file in files)
         {
             var attachmentResult = await TryIngestSingleAttachmentAsync(
-                file, audience, policy, inlineImages, inboxDir, stagingDir, cancellationToken);
+                file, audience, policy, inputModalities, inboxDir, stagingDir, cancellationToken);
 
             switch (attachmentResult)
             {
@@ -1606,7 +1606,7 @@ internal sealed class DiscordSessionBindingActor : ReceivePersistentActor, IWith
         DiscordFileReference file,
         TrustAudience audience,
         ChannelAttachmentPolicy policy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -1614,7 +1614,7 @@ internal sealed class DiscordSessionBindingActor : ReceivePersistentActor, IWith
             new AttachmentIngressRequest(file.Name, file.MimeType, file.Size),
             audience,
             policy,
-            inlineImages,
+            inputModalities,
             inboxDir,
             stagingDir,
             OperationTimeout,

@@ -510,7 +510,7 @@ public sealed class OpenAiCompatibleChatClient : IChatClient
     {
         // Classify contents by MEAI type
         var textSegments = new List<string>();
-        var imageParts = new List<JsonObject>();
+        var mediaParts = new List<JsonObject>();
         var toolCalls = new List<JsonObject>();
         var reasoningSegments = new List<string>();
         FunctionResultContent? toolResult = null;
@@ -531,14 +531,29 @@ public sealed class OpenAiCompatibleChatClient : IChatClient
 
                 case DataContent data:
                     var mimeType = new MimeType(data.MediaType);
+                    var b64 = Convert.ToBase64String(data.Data.ToArray());
+                    if (MimeTypeCatalog.GetMediaKind(mimeType) == MediaKind.Audio
+                        && MimeTypeCatalog.TryGetInputAudioFormat(mimeType, out var audioFormat))
+                    {
+                        mediaParts.Add(new JsonObject
+                        {
+                            ["type"] = "input_audio",
+                            ["input_audio"] = new JsonObject
+                            {
+                                ["data"] = b64,
+                                ["format"] = audioFormat
+                            }
+                        });
+                        break;
+                    }
+
                     if (!MimeTypeCatalog.IsModelInputSupported(mimeType))
                     {
                         throw new InvalidOperationException(
-                            $"OpenAI-compatible image_url serialization only supports image DataContent; received '{mimeType.Value}'.");
+                            $"OpenAI-compatible multimodal serialization only supports image or input_audio DataContent; received '{mimeType.Value}'.");
                     }
 
-                    var b64 = Convert.ToBase64String(data.Data.ToArray());
-                    imageParts.Add(new JsonObject
+                    mediaParts.Add(new JsonObject
                     {
                         ["type"] = "image_url",
                         ["image_url"] = new JsonObject
@@ -595,8 +610,8 @@ public sealed class OpenAiCompatibleChatClient : IChatClient
             return msg;
         }
 
-        // Multimodal: images present → content array
-        if (imageParts.Count > 0)
+        // Multimodal: images or audio present → content array
+        if (mediaParts.Count > 0)
         {
             var parts = new JsonArray();
 
@@ -618,8 +633,8 @@ public sealed class OpenAiCompatibleChatClient : IChatClient
                 });
             }
 
-            foreach (var img in imageParts)
-                parts.Add(img);
+            foreach (var part in mediaParts)
+                parts.Add(part);
 
             return new JsonObject
             {

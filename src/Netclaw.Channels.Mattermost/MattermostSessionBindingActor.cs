@@ -1507,7 +1507,7 @@ internal sealed class MattermostSessionBindingActor : ReceivePersistentActor, IW
         }
 
         var modelCapabilities = _dependencies.ModelCapabilities;
-        var inlineImages = modelCapabilities.InputModalities.HasFlag(ModelModality.Image);
+        var inputModalities = modelCapabilities.InputModalities;
 
         var acceptedLines = new List<string>(files.Count);
         var dataContents = new List<DataContent>();
@@ -1519,7 +1519,7 @@ internal sealed class MattermostSessionBindingActor : ReceivePersistentActor, IW
         foreach (var file in files)
         {
             var attachmentResult = await TryIngestSingleAttachmentAsync(
-                file, audience, policy, inlineImages, inboxDir, stagingDir, cancellationToken);
+                file, audience, policy, inputModalities, inboxDir, stagingDir, cancellationToken);
 
             switch (attachmentResult)
             {
@@ -1554,7 +1554,7 @@ internal sealed class MattermostSessionBindingActor : ReceivePersistentActor, IW
         MattermostFileReference file,
         TrustAudience audience,
         ChannelAttachmentPolicy policy,
-        bool inlineImages,
+        ModelModality inputModalities,
         string inboxDir,
         string stagingDir,
         CancellationToken cancellationToken)
@@ -1562,7 +1562,7 @@ internal sealed class MattermostSessionBindingActor : ReceivePersistentActor, IW
             new AttachmentIngressRequest(file.Name, file.MimeType, file.Size),
             audience,
             policy,
-            inlineImages,
+            inputModalities,
             inboxDir,
             stagingDir,
             OperationTimeout,
