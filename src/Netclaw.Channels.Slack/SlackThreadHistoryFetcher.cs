@@ -317,7 +317,8 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
             return cached is HistoricalAttachmentIngress.ScanOutcome.Verified cachedOk
                 ? await AttachmentIngressFormatting.BuildAcceptedContentsAsync(
                     existingPath, filename, cachedOk.MimeType.Value, cachedOk.Category,
-                    inputModalities, existingSize, cancellationToken)
+                    inputModalities, existingSize, policy.MaxFileBytes, cancellationToken,
+                    error => _logger.LogWarning("Historical attachment {Name} audio could not be converted: {Error}", filename, error))
                 : [((HistoricalAttachmentIngress.ScanOutcome.Rejected)cached).Note];
         }
 
@@ -403,7 +404,9 @@ public sealed class SlackThreadHistoryFetcher : IThreadHistoryFetcher
             verifiedCategory,
             inputModalities,
             downloadResult.BytesWritten,
-            cancellationToken);
+            policy.MaxFileBytes,
+            cancellationToken,
+            error => _logger.LogWarning("Historical attachment {Name} audio could not be converted: {Error}", filename, error));
     }
 
     private HistoricalTrustResult ResolveHistoricalTrust(SlackChannelId channelId, string senderId)

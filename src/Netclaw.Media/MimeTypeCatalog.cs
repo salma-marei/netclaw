@@ -153,6 +153,14 @@ public static class MimeTypeCatalog
         }
     }
 
+    /// <summary>
+    /// True for audio types that are not directly serializable as
+    /// <c>input_audio</c> but can be transcoded to WAV first. Only OGG is
+    /// supported today.
+    /// </summary>
+    public static bool CanTranscodeToInputAudio(MimeType mimeType) =>
+        mimeType.Value == AudioOgg;
+
     public static bool TryGetFromPathExtension(string path, out MimeType mimeType) =>
         TryGetFromExtension(FileExtension.FromPath(path), out mimeType);
 

@@ -285,7 +285,8 @@ public sealed class MattermostThreadHistoryFetcher : IThreadHistoryFetcher
             return cached is HistoricalAttachmentIngress.ScanOutcome.Verified cachedOk
                 ? await AttachmentIngressFormatting.BuildAcceptedContentsAsync(
                     existingPath, file.Name, cachedOk.MimeType.Value, cachedOk.Category,
-                    inputModalities, existingSize, cancellationToken)
+                    inputModalities, existingSize, policy.MaxFileBytes, cancellationToken,
+                    error => _logger.LogWarning("Historical attachment {Name} audio could not be converted: {Error}", file.Name, error))
                 : [((HistoricalAttachmentIngress.ScanOutcome.Rejected)cached).Note];
         }
 
@@ -387,7 +388,9 @@ public sealed class MattermostThreadHistoryFetcher : IThreadHistoryFetcher
             verifiedCategory,
             inputModalities,
             bytesWritten,
-            cancellationToken);
+            policy.MaxFileBytes,
+            cancellationToken,
+            error => _logger.LogWarning("Historical attachment {Name} audio could not be converted: {Error}", file.Name, error));
     }
 
     private AudienceResult ResolveHistoricalAudience(MattermostChannelId channelId)

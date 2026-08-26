@@ -275,7 +275,8 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
             return cached is HistoricalAttachmentIngress.ScanOutcome.Verified cachedOk
                 ? await AttachmentIngressFormatting.BuildAcceptedContentsAsync(
                     existingPath, file.Name, cachedOk.MimeType.Value, cachedOk.Category,
-                    inputModalities, existingSize, cancellationToken)
+                    inputModalities, existingSize, policy.MaxFileBytes, cancellationToken,
+                    error => _logger.LogWarning("Historical attachment {Name} audio could not be converted: {Error}", file.Name, error))
                 : [((HistoricalAttachmentIngress.ScanOutcome.Rejected)cached).Note];
         }
 
@@ -370,7 +371,9 @@ public sealed class DiscordThreadHistoryFetcher : IThreadHistoryFetcher
             verifiedCategory,
             inputModalities,
             downloadResult.BytesWritten,
-            cancellationToken);
+            policy.MaxFileBytes,
+            cancellationToken,
+            error => _logger.LogWarning("Historical attachment {Name} audio could not be converted: {Error}", file.Name, error));
     }
 
     private HistoricalTrustResult ResolveHistoricalTrust(

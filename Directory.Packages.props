@@ -19,6 +19,8 @@
     <OpenAIVersion>2.12.0</OpenAIVersion>
     <MicrosoftAspNetCoreVersion>10.0.10</MicrosoftAspNetCoreVersion>
     <SkiaSharpVersion>4.151.1</SkiaSharpVersion>
+    <ConcentusVersion>2.2.2</ConcentusVersion>
+    <ConcentusOggfileVersion>1.0.7</ConcentusOggfileVersion>
     <!-- Aspire pins are exercised only by samples/Netclaw.Demo.AppHost and its
          integration tests. The 13.x line is the .NET 10 generation of Aspire;
          9.x pulls a vulnerable KubernetesClient 17.0.4 (GHSA-w7r3-mgwf-4mqq)
@@ -113,6 +115,12 @@
   <ItemGroup>
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="$(SkiaSharpVersion)" />
+  </ItemGroup>
+  <!-- Opus-in-OGG to WAV transcoding (Netclaw.Media). Pure-managed codec with
+       no native runtime dependency. -->
+  <ItemGroup>
+    <PackageVersion Include="Concentus" Version="$(ConcentusVersion)" />
+    <PackageVersion Include="Concentus.Oggfile" Version="$(ConcentusOggfileVersion)" />
   </ItemGroup>
   <!-- Benchmarks (benchmarks/Netclaw.Benchmarks only) -->
   <ItemGroup>

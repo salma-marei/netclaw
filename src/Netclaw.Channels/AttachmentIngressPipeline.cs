@@ -208,7 +208,15 @@ public static class AttachmentIngressPipeline
             verifiedCategory,
             inputModalities,
             downloadResult.BytesWritten,
+            policy.MaxFileBytes,
             cancellationToken);
+
+        if (projection.UnexpectedTranscodeError is { } transcodeError)
+        {
+            log.Warning(
+                "attachment_transcode_failed name={Name} mime={Mime} error={Error}",
+                name, verifiedMime.Value, transcodeError);
+        }
 
         log.Info(
             "attachment_accepted name={Name} declaredMime={DeclaredMime} verifiedMime={VerifiedMime} size={Size} category={Category} inlined={Inlined}",

@@ -66,7 +66,7 @@ public static class AttachmentIngressFormatting
         return sb.ToString();
     }
 
-    public static (bool Inlined, string? Note) ResolveInlineDecision(
+    public static (AttachmentInlineDecision.AttachmentInlineAction Action, string? Note) ResolveInlineDecision(
         MimeType mimeType,
         AttachmentCategory category,
         ModelModality inputModalities)
@@ -79,17 +79,49 @@ public static class AttachmentIngressFormatting
         AttachmentCategory category,
         ModelModality inputModalities,
         long size,
+        long maxDecodedBytes,
         CancellationToken cancellationToken)
     {
         var relativePath = $"{SessionDirectoryHelper.InboxSubdirectory}/{Path.GetFileName(inboxPath)}";
-        var (inlined, note) = ResolveInlineDecision(new MimeType(mimeType), category, inputModalities);
-        var line = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined, note);
+        var (action, note) = ResolveInlineDecision(new MimeType(mimeType), category, inputModalities);
 
-        if (!inlined)
+        if (action == AttachmentInlineDecision.AttachmentInlineAction.PathOnly)
+        {
+            var line = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined: false, note);
             return new AttachmentIngressProjection(line, InlineContent: null, Inlined: false);
+        }
 
-        var bytes = await File.ReadAllBytesAsync(inboxPath, cancellationToken);
-        return new AttachmentIngressProjection(line, new DataContent(bytes, mimeType), Inlined: true);
+        if (action == AttachmentInlineDecision.AttachmentInlineAction.TranscodeAndInline)
+        {
+            var line = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined: true, note);
+            var bytes = await File.ReadAllBytesAsync(inboxPath, cancellationToken);
+            try
+            {
+                var wav = AudioTranscoder.TranscodeOpusOggToWav(bytes, maxDecodedBytes);
+                return new AttachmentIngressProjection(line, new DataContent(wav, MimeTypeCatalog.AudioWav), Inlined: true);
+            }
+            catch (AudioTranscodeException)
+            {
+                // Expected failure (non-Opus OGG or budget exceeded): keep the
+                // attachment path-only, same as other non-inlineable audio.
+                var fallbackLine = BuildAttachmentLine(
+                    filename, mimeType, size, relativePath, inlined: false, AttachmentNotes.FormatNotInlineable);
+                return new AttachmentIngressProjection(fallbackLine, InlineContent: null, Inlined: false);
+            }
+            catch (Exception ex)
+            {
+                // Unexpected converter error: keep the file on disk, surface a
+                // note, and let the caller log the underlying exception.
+                var fallbackLine = BuildAttachmentLine(
+                    filename, mimeType, size, relativePath, inlined: false, AttachmentNotes.AudioTranscodeFailed);
+                return new AttachmentIngressProjection(
+                    fallbackLine, InlineContent: null, Inlined: false, UnexpectedTranscodeError: ex.Message);
+            }
+        }
+
+        var inlineLine = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined: true, note);
+        var inlineBytes = await File.ReadAllBytesAsync(inboxPath, cancellationToken);
+        return new AttachmentIngressProjection(inlineLine, new DataContent(inlineBytes, mimeType), Inlined: true);
     }
 
     public static async Task<IReadOnlyList<AIContent>> BuildAcceptedContentsAsync(
@@ -99,10 +131,16 @@ public static class AttachmentIngressFormatting
         AttachmentCategory category,
         ModelModality inputModalities,
         long size,
-        CancellationToken cancellationToken)
+        long maxDecodedBytes,
+        CancellationToken cancellationToken,
+        Action<string> onUnexpectedTranscodeFailure)
     {
         var projection = await BuildAcceptedProjectionAsync(
-            inboxPath, filename, mimeType, category, inputModalities, size, cancellationToken);
+            inboxPath, filename, mimeType, category, inputModalities, size, maxDecodedBytes, cancellationToken);
+
+        if (projection.UnexpectedTranscodeError is { } error)
+            onUnexpectedTranscodeFailure(error);
+
         var line = new TextContent(projection.Line);
         return projection.InlineContent is null
             ? [line]
@@ -116,4 +154,5 @@ public static class AttachmentIngressFormatting
 public readonly record struct AttachmentIngressProjection(
     string Line,
     DataContent? InlineContent,
-    bool Inlined);
+    bool Inlined,
+    string? UnexpectedTranscodeError = null);

@@ -48,4 +48,18 @@ public static class AttachmentNotes
     /// </summary>
     public const string FormatNotInlineable =
         "format not inlineable; use file_read or shell_execute to process";
+
+    /// <summary>
+    /// Informational note for an audio attachment that the model can hear only
+    /// after an OGG-to-WAV transcode at model-input time.
+    /// </summary>
+    public const string AudioTranscodedToWav =
+        "converted to wav for model input";
+
+    /// <summary>
+    /// Note for an audio attachment whose transcode failed unexpectedly. The
+    /// file stays on disk; the caller logs the underlying error.
+    /// </summary>
+    public const string AudioTranscodeFailed =
+        "audio could not be converted for model input";
 }

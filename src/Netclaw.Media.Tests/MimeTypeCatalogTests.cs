@@ -84,6 +84,17 @@ public sealed class MimeTypeCatalogTests
         Assert.Equal(expected, MimeTypeCatalog.IsModelInputSupported(mimeType));
     }
 
+    [Theory]
+    [InlineData("audio/ogg", true)]
+    [InlineData("audio/mpeg", false)]
+    [InlineData("audio/wav", false)]
+    [InlineData("audio/mp4", false)]
+    [InlineData("image/png", false)]
+    public void CanTranscodeToInputAudio_only_allows_ogg(string mimeType, bool expected)
+    {
+        Assert.Equal(expected, MimeTypeCatalog.CanTranscodeToInputAudio(new MimeType(mimeType)));
+    }
+
     [Fact]
     public void NormalizeDeclaredForExtension_accepts_octet_stream_when_extension_is_known()
     {
