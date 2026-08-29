@@ -367,6 +367,37 @@ public sealed record SessionState
         return null;
     }
 
+    /// <summary>
+    /// Remove the media references from the last real user message in history,
+    /// preserving the message text. A failed model/provider request must not
+    /// leave its media behind: the assembler re-attaches every persisted
+    /// <see cref="SerializableChatMessage.MediaReferences"/> on each later
+    /// request, so a provider rejection (e.g. a 400 on input_audio) would
+    /// otherwise replay the same rejected payload on every subsequent turn.
+    /// </summary>
+    public SessionState StripMediaFromLastUserMessage()
+    {
+        for (var i = History.Count - 1; i >= 0; i--)
+        {
+            var message = History[i];
+            if (message.Role != ChatRole.User || IsSystemNudge(message))
+                continue;
+
+            if (message.MediaReferences.Count == 0)
+                return this;
+
+            return this with
+            {
+                History = History.SetItem(i, message with
+                {
+                    MediaReferences = Array.Empty<SerializableMediaReference>()
+                })
+            };
+        }
+
+        return this;
+    }
+
     internal static bool IsSystemNudge(SerializableChatMessage message)
     {
         return message.Role == ChatRole.User

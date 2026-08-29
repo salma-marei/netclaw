@@ -4471,6 +4471,19 @@ public sealed class LlmSessionActor : ReceivePersistentActor, IWithTimers
         _pendingToolInteractions.Clear();
         _resolvedToolApprovals.Clear();
         ClearApprovalTurnState();
+
+        // A failed model/provider request must not leave its media in history:
+        // the assembler re-attaches every persisted MediaReference on each later
+        // turn, so a provider rejection (e.g. Z.ai 400 on input_audio) would
+        // otherwise replay the same rejected payload forever. Strip the current
+        // turn's media refs while preserving the user's text. Tool and timeout
+        // failures are excluded — the media reached the model successfully there,
+        // and keeping it lets a retry reuse that context.
+        if (category is ErrorCategory.ProviderFailure or ErrorCategory.StreamFailure)
+        {
+            _state = _state.StripMediaFromLastUserMessage();
+        }
+
         _state = _state.AddErrorReply(errorMessage);
 
         var correlationId = Guid.NewGuid();
