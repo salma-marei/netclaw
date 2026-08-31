@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="AttachFileToolTests.cs" company="Petabridge, LLC">
 //      Copyright (C) 2026 - 2026 Petabridge, LLC <https://petabridge.com>
 // </copyright>
@@ -36,6 +36,25 @@ public class AttachFileToolTests : IDisposable
         Assert.Contains("File attached", result);
         Assert.Contains("report.png", result);
         Assert.Contains("image/png", result);
+    }
+
+    [Fact]
+    public async Task Missing_session_is_invalid_and_does_not_suggest_project_declaration()
+    {
+        var context = TestToolExecutionContext.CreateUnbound(new TestToolExecutionContextOptions
+        {
+            Audience = TrustAudience.Personal
+        });
+
+        var result = await _tool.ExecuteAsync(
+            ToolInput.Create("Path", "report.png"),
+            context,
+            TestContext.Current.CancellationToken);
+
+        Assert.Contains("invalid_context", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("set_working_directory", result, StringComparison.Ordinal);
+        Assert.Equal(ToolInvocationOutcomeCategory.InvalidInput, context.Receipt?.Category);
+        Assert.Null(context.Receipt?.RemediationCode);
     }
 
     [Fact]

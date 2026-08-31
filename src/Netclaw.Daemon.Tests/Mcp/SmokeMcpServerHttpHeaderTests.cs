@@ -29,6 +29,7 @@ namespace Netclaw.Daemon.Tests.Mcp;
 /// configured header → <c>HttpClientTransport.AdditionalHeaders</c> → wire →
 /// server-side capture.
 /// </summary>
+[Collection(McpSmokeChildProcessCollection.Name)]
 public sealed class SmokeMcpServerHttpHeaderTests
 {
     private readonly ITestOutputHelper _output;
@@ -70,9 +71,13 @@ public sealed class SmokeMcpServerHttpHeaderTests
         // the tool lookup below.
         harness.AssertConnected("smoke-http");
 
-        var lastAuthHeader = registry.GetAllRegistrations()
+        var publishedTools = registry.GetAllRegistrations()
             .Select(r => r.Tool)
             .OfType<McpToolAdapter>()
+            .ToList();
+        Assert.DoesNotContain(publishedTools, t => t.Name == "smoke-http/add-dynamic-tool");
+
+        var lastAuthHeader = publishedTools
             .SingleOrDefault(t => t.Name == "smoke-http/last_auth_header");
         Assert.NotNull(lastAuthHeader);
 
