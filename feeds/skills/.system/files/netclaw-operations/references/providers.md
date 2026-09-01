@@ -28,6 +28,7 @@ and a `type` (well-known identifier). Manage them with `netclaw provider`:
 | `github-copilot` | OAuth device flow only | Requires active Copilot subscription on the GitHub account |
 | `veniceai` | API key | OpenAI-compatible at `https://api.venice.ai/api/v1`. Suppresses Venice's prepended system prompt by default; opt in via `VendorOptions.IncludeVeniceSystemPrompt = true` |
 | `deepseek` | API key | DeepSeek hosted API at `https://api.deepseek.com/v1`. Current model ids: `deepseek-v4-flash` and `deepseek-v4-pro` |
+| `google-vertex` | Service account | Google Vertex AI Gemini models via the Vertex OpenAI-compatible endpoint. Supply the service-account credential as `ServiceAccountJson` (full JSON) in `secrets.json`, or set `GOOGLE_APPLICATION_CREDENTIALS` to the JSON file path. `project_id` derives from the JSON and the location defaults to `global`. `VendorOptions.ProjectId` / `VendorOptions.Location` or `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` override them. Model IDs accept the bare form (`gemini-2.5-flash`) or publisher form (`google/gemini-2.5-flash`); bare IDs are sent as `google/...`. `netclaw doctor` reports a `ServiceAccount` entry with neither credential form. |
 
 Provider-specific behavior toggles belong under
 `Providers.<name>.VendorOptions`. Netclaw keeps that bag opaque at the core
