@@ -10,7 +10,8 @@ namespace Netclaw.Providers;
 /// <summary>
 /// Shared error message extraction for OpenAI-compatible provider error responses.
 /// Parses <c>{"error": {"message": "..."}}</c> and <c>{"error": "..."}</c> formats,
-/// with per-provider status code fallback tables.
+/// including provider responses that wrap those objects in an array, with
+/// per-provider status code fallback tables.
 /// </summary>
 public static class ProviderErrorHelper
 {
@@ -37,22 +38,8 @@ public static class ProviderErrorHelper
             try
             {
                 using var doc = JsonDocument.Parse(responseBody);
-                if (doc.RootElement.TryGetProperty("error", out var error))
-                {
-                    if (error.ValueKind == JsonValueKind.Object
-                        && error.TryGetProperty("message", out var msg)
-                        && msg.ValueKind == JsonValueKind.String
-                        && msg.GetString() is { Length: > 0 } errorMessage)
-                    {
-                        return $"{providerLabel} error ({statusCode}): {errorMessage}";
-                    }
-
-                    if (error.ValueKind == JsonValueKind.String
-                        && error.GetString() is { Length: > 0 } simpleError)
-                    {
-                        return $"{providerLabel} error ({statusCode}): {simpleError}";
-                    }
-                }
+                if (TryExtractErrorMessage(doc.RootElement, out var errorMessage))
+                    return $"{providerLabel} error ({statusCode}): {errorMessage}";
             }
             catch (JsonException)
             {
@@ -70,5 +57,46 @@ public static class ProviderErrorHelper
             >= 500 => $"{providerLabel} returned a server error ({statusCode}). The provider may be experiencing issues.",
             _ => $"{providerLabel} returned an error (HTTP {statusCode}). Please try again."
         };
+    }
+
+    private static bool TryExtractErrorMessage(JsonElement root, out string message)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in root.EnumerateArray())
+            {
+                if (TryExtractErrorMessage(item, out message))
+                    return true;
+            }
+
+            message = string.Empty;
+            return false;
+        }
+
+        if (root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty("error", out var error))
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        if (error.ValueKind == JsonValueKind.Object
+            && error.TryGetProperty("message", out var msg)
+            && msg.ValueKind == JsonValueKind.String
+            && msg.GetString() is { Length: > 0 } errorMessage)
+        {
+            message = errorMessage;
+            return true;
+        }
+
+        if (error.ValueKind == JsonValueKind.String
+            && error.GetString() is { Length: > 0 } simpleError)
+        {
+            message = simpleError;
+            return true;
+        }
+
+        message = string.Empty;
+        return false;
     }
 }

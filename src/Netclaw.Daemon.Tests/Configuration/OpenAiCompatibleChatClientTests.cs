@@ -653,6 +653,15 @@ data: [DONE]
     }
 
     [Fact]
+    public void ExtractUserMessage_ParsesErrorObjectWrappedInArray()
+    {
+        var body = """[{"error":{"code":400,"message":"Gemini rejected the request","status":"INVALID_ARGUMENT"}}]""";
+        var result = OpenAiCompatibleChatClient.ExtractUserMessage(body, 400);
+
+        Assert.Equal("LLM provider error (400): Gemini rejected the request", result);
+    }
+
+    [Fact]
     public void ExtractUserMessage_FallsBackOnInvalidJson()
     {
         var result = OpenAiCompatibleChatClient.ExtractUserMessage("not json", 502);
