@@ -20,5 +20,11 @@ public enum AuthMethod
     OAuthDevice,
 
     /// <summary>OAuth 2.1 Authorization Code + PKCE (for MCP servers).</summary>
-    OAuthPkce
+    OAuthPkce,
+
+    /// <summary>
+    /// Google Cloud service-account credential: the full service-account
+    /// JSON, minted to short-lived Bearer tokens at request time.
+    /// </summary>
+    ServiceAccount
 }

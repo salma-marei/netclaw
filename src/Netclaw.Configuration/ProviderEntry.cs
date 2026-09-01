@@ -21,6 +21,13 @@ public sealed class ProviderEntry
     public string Endpoint { get; set; } = "";
     public AuthMethod AuthMethod { get; set; } = AuthMethod.None;
     public SensitiveString? ApiKey { get; set; }
+
+    /// <summary>
+    /// Full Google Cloud service-account JSON for
+    /// <see cref="AuthMethod.ServiceAccount"/>. Secret material: lives in
+    /// secrets.json and must never be logged or persisted elsewhere.
+    /// </summary>
+    public SensitiveString? ServiceAccountJson { get; set; }
     public SensitiveString? OAuthAccessToken { get; set; }
     public SensitiveString? OAuthRefreshToken { get; set; }
     public SensitiveString? OAuthAccountId { get; set; }

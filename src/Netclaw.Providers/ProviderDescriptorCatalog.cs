@@ -6,6 +6,7 @@
 using Netclaw.Providers.Anthropic;
 using Netclaw.Providers.DeepSeek;
 using Netclaw.Providers.GitHubCopilot;
+using Netclaw.Providers.GoogleVertex;
 using Netclaw.Providers.OpenAi;
 using Netclaw.Providers.OpenRouter;
 using Netclaw.Providers.SelfHosted;
@@ -30,6 +31,7 @@ public sealed class ProviderDescriptorCatalog
         GitHubCopilot = GetRequired<GitHubCopilotDescriptor>(descriptors);
         VeniceAi = GetRequired<VeniceAiDescriptor>(descriptors);
         DeepSeek = GetRequired<DeepSeekDescriptor>(descriptors);
+        GoogleVertex = GetRequired<GoogleVertexDescriptor>(descriptors);
     }
 
     public OllamaDescriptor Ollama { get; }
@@ -47,6 +49,8 @@ public sealed class ProviderDescriptorCatalog
     public VeniceAiDescriptor VeniceAi { get; }
 
     public DeepSeekDescriptor DeepSeek { get; }
+
+    public GoogleVertexDescriptor GoogleVertex { get; }
 
     public IReadOnlyList<IProviderDescriptor> All { get; }
 
@@ -67,6 +71,7 @@ public sealed class ProviderDescriptorCatalog
             new GitHubCopilotDescriptor(httpClient, copilotTokenExchanger),
             new VeniceAiDescriptor(httpClient),
             new DeepSeekDescriptor(httpClient),
+            new GoogleVertexDescriptor(httpClient),
         ]);
     }
 

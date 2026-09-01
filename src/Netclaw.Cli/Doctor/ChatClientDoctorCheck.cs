@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
 using Netclaw.Configuration;
 using Netclaw.Providers;
+using Netclaw.Providers.GoogleVertex;
 
 namespace Netclaw.Cli.Doctor;
 
@@ -183,8 +184,37 @@ public sealed class ChatClientDoctorCheck : IDoctorCheck
 
         var hasApiKey = !provider.ApiKey.IsNullOrEmpty();
         var hasOAuthToken = !provider.OAuthAccessToken.IsNullOrEmpty();
+        var hasServiceAccount = !provider.ServiceAccountJson.IsNullOrEmpty();
         var supportsApiKey = supported.Contains(AuthMethod.ApiKey);
         var supportsOAuth = supported.Any(IsOAuth);
+        var supportsServiceAccount = supported.Contains(AuthMethod.ServiceAccount);
+
+        if (supportsServiceAccount)
+        {
+            // Service-account-only provider (google-vertex): the credential is
+            // either inline JSON in secrets.json or the standard
+            // GOOGLE_APPLICATION_CREDENTIALS file path. No ambient
+            // application-default fallback — an absent credential must be
+            // reported, not silently replaced.
+            if (provider.AuthMethod != AuthMethod.ServiceAccount)
+                return $"provider '{providerName}' ({descriptor.TypeKey}) declares AuthMethod {provider.AuthMethod} but only supports ServiceAccount.";
+
+            if (hasServiceAccount)
+                return null;
+
+            var credentialsPath = Environment.GetEnvironmentVariable(
+                GoogleVertexDescriptor.CredentialsPathEnvironmentVariable);
+            if (string.IsNullOrWhiteSpace(credentialsPath))
+            {
+                return $"provider '{providerName}' ({descriptor.TypeKey}) has no service-account credential. "
+                    + "Set GOOGLE_APPLICATION_CREDENTIALS to the JSON file path, or store the full JSON as "
+                    + "ServiceAccountJson in secrets.json.";
+            }
+
+            return File.Exists(credentialsPath)
+                ? null
+                : $"provider '{providerName}' ({descriptor.TypeKey}) GOOGLE_APPLICATION_CREDENTIALS points to a missing file: '{credentialsPath}'.";
+        }
 
         if (supportsApiKey && supportsOAuth)
         {

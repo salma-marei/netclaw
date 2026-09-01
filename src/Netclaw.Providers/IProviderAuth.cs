@@ -53,6 +53,17 @@ public sealed class EndpointOrApiKeyAuth : IProviderAuth
 }
 
 /// <summary>
+/// Provider authenticates with a Google Cloud service-account credential
+/// (the full service-account JSON in secrets.json). Tokens are minted at
+/// request time; Netclaw stores and sends no static key.
+/// </summary>
+public sealed class ServiceAccountAuth : IProviderAuth
+{
+    public IReadOnlyList<AuthMethod> SupportedAuthMethods { get; } =
+        [AuthMethod.ServiceAccount];
+}
+
+/// <summary>
 /// Provider authenticates via OAuth (device flow, browser PKCE, or both).
 /// </summary>
 public sealed class OAuthAuth : IProviderAuth

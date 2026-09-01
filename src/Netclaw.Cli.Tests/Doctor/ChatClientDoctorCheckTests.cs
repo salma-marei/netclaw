@@ -396,6 +396,106 @@ public sealed class ChatClientDoctorCheckTests
         Assert.Contains("Real chat client configured", result.Message);
     }
 
+    [Fact]
+    public async Task ReturnsError_WhenGoogleVertexHasNoCredentialAtAll()
+    {
+        var previous = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+        Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", null);
+        try
+        {
+            var paths = CreatePathsWithConfig("""
+                {
+                  "configVersion": 1,
+                  "Providers": {
+                    "gcp": { "Type": "google-vertex", "AuthMethod": "ServiceAccount" }
+                  },
+                  "Models": {
+                    "Main": { "Provider": "gcp", "ModelId": "gemini-2.5-flash" }
+                  }
+                }
+                """);
+
+            var check = CreateCheck(paths);
+            var result = await check.RunAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(DoctorSeverity.Error, result.Severity);
+            Assert.Contains("GOOGLE_APPLICATION_CREDENTIALS", result.Message);
+            Assert.Contains("ServiceAccountJson", result.Message);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", previous);
+        }
+    }
+
+    [Fact]
+    public async Task ReturnsError_WhenGoogleVertexEnvironmentFileMissing()
+    {
+        var missingPath = Path.Combine(Path.GetTempPath(), "netclaw-tests", "missing-sa-key.json");
+        var previous = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+        Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", missingPath);
+        try
+        {
+            var paths = CreatePathsWithConfig("""
+                {
+                  "configVersion": 1,
+                  "Providers": {
+                    "gcp": { "Type": "google-vertex", "AuthMethod": "ServiceAccount" }
+                  },
+                  "Models": {
+                    "Main": { "Provider": "gcp", "ModelId": "gemini-2.5-flash" }
+                  }
+                }
+                """);
+
+            var check = CreateCheck(paths);
+            var result = await check.RunAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(DoctorSeverity.Error, result.Severity);
+            Assert.Contains("missing file", result.Message);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", previous);
+        }
+    }
+
+    [Fact]
+    public async Task ReturnsPass_WhenGoogleVertexUsesEnvironmentCredentialFile()
+    {
+        var credentialPath = Path.Combine(
+            Path.GetTempPath(), "netclaw-tests", $"env-sa-{Guid.NewGuid():N}.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(credentialPath)!);
+        await File.WriteAllTextAsync(credentialPath, "{}", TestContext.Current.CancellationToken);
+        var previous = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+        Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialPath);
+        try
+        {
+            var paths = CreatePathsWithConfig("""
+                {
+                  "configVersion": 1,
+                  "Providers": {
+                    "gcp": { "Type": "google-vertex", "AuthMethod": "ServiceAccount" }
+                  },
+                  "Models": {
+                    "Main": { "Provider": "gcp", "ModelId": "gemini-2.5-flash" }
+                  }
+                }
+                """);
+
+            var check = CreateCheck(paths);
+            var result = await check.RunAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(DoctorSeverity.Pass, result.Severity);
+            Assert.Contains("Real chat client configured", result.Message);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", previous);
+            File.Delete(credentialPath);
+        }
+    }
+
     private static NetclawPaths CreatePathsWithConfig(string configJson)
     {
         var basePath = CreateTempBasePath();

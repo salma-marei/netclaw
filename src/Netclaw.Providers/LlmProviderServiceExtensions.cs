@@ -9,6 +9,7 @@ using Netclaw.Configuration.Http;
 using Netclaw.Providers.Anthropic;
 using Netclaw.Providers.DeepSeek;
 using Netclaw.Providers.GitHubCopilot;
+using Netclaw.Providers.GoogleVertex;
 using Netclaw.Providers.OAuth;
 using Netclaw.Providers.OpenAi;
 using Netclaw.Providers.OpenRouter;
@@ -42,6 +43,7 @@ public static class LlmProviderServiceExtensions
         services.AddSingleton<GitHubCopilotProviderPlugin>();
         services.AddSingleton<VeniceAiProviderPlugin>();
         services.AddSingleton<DeepSeekProviderPlugin>();
+        services.AddSingleton<GoogleVertexProviderPlugin>();
 
         services.AddSingleton<ILlmProviderPlugin>(sp => sp.GetRequiredService<OllamaProviderPlugin>());
         services.AddSingleton<ILlmProviderPlugin>(sp => sp.GetRequiredService<OpenAiCompatibleProviderPlugin>());
@@ -51,6 +53,7 @@ public static class LlmProviderServiceExtensions
         services.AddSingleton<ILlmProviderPlugin>(sp => sp.GetRequiredService<GitHubCopilotProviderPlugin>());
         services.AddSingleton<ILlmProviderPlugin>(sp => sp.GetRequiredService<VeniceAiProviderPlugin>());
         services.AddSingleton<ILlmProviderPlugin>(sp => sp.GetRequiredService<DeepSeekProviderPlugin>());
+        services.AddSingleton<ILlmProviderPlugin>(sp => sp.GetRequiredService<GoogleVertexProviderPlugin>());
 
         return services;
     }

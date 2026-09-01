@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="Anthropic" />
+    <PackageReference Include="Google.Apis.Auth" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="OllamaSharp" />
   </ItemGroup>
