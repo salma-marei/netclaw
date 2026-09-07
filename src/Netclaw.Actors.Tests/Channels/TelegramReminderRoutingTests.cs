@@ -37,6 +37,7 @@ public sealed class TelegramReminderRoutingTests(ITestOutputHelper output) : Tes
             new ToolAudienceProfiles(),
             null!,
             null!,
+            null!,
             ConversationPropsFactory: (_, _) => Props.Create(() => new ForwardActor(sink.Ref)));
         var gateway = Sys.ActorOf(TelegramGatewayActor.CreateProps(dependencies));
         var source = new MessageSource

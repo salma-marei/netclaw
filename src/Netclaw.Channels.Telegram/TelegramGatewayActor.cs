@@ -89,5 +89,6 @@ public sealed record TelegramGatewayDependencies(
     ToolAudienceProfiles AudienceProfiles,
     ModelCapabilities ModelCapabilities,
     NetclawPaths Paths,
+    ISessionStorageResolver StorageResolver,
     IChannelRegistry? ChannelRegistry = null,
     Func<TelegramChatId, TelegramGatewayDependencies, Props>? ConversationPropsFactory = null);

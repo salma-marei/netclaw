@@ -212,12 +212,9 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
         }
 
         var inputModalities = _dependencies.ModelCapabilities.InputModalities;
-        var inbox = SessionDirectoryHelper.GetOrCreateInboxDirectory(
-            _sessionId,
-            _dependencies.Paths.SessionsDirectory);
-        var staging = SessionDirectoryHelper.GetOrCreateAttachmentStagingDirectory(
-            _sessionId,
-            _dependencies.Paths.SessionsDirectory);
+        var storage = _dependencies.StorageResolver.Resolve(_sessionId);
+        var inbox = SessionDirectoryHelper.GetOrCreateInboxDirectory(storage);
+        var staging = SessionDirectoryHelper.GetOrCreateAttachmentStagingDirectory(storage);
         var acceptedLines = new List<string>();
         var hasInlineAudio = false;
 
