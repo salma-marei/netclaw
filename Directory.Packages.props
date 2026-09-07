@@ -25,8 +25,8 @@
          integration tests. The 13.x line is the .NET 10 generation of Aspire;
          9.x pulls a vulnerable KubernetesClient 17.0.4 (GHSA-w7r3-mgwf-4mqq)
          that trips NU1902 under our TreatWarningsAsErrors policy. -->
-    <AspireHostingVersion>13.4.6</AspireHostingVersion>
-    <CommunityToolkitAspireVersion>13.4.0</CommunityToolkitAspireVersion>
+    <AspireHostingVersion>13.5.3</AspireHostingVersion>
+    <CommunityToolkitAspireVersion>13.5.0</CommunityToolkitAspireVersion>
     <ModelContextProtocolVersion>2.2.0</ModelContextProtocolVersion>
   </PropertyGroup>
   <!-- App dependencies -->
@@ -39,7 +39,7 @@
     <PackageVersion Include="Aaron.Akka.Reminders" Version="$(AkkaRemindersVersion)" />
     <PackageVersion Include="Aaron.Akka.Reminders.Sqlite" Version="$(AkkaRemindersVersion)" />
     <PackageVersion Include="Anthropic" Version="12.44.0" />
-    <PackageVersion Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageVersion Include="HtmlAgilityPack" Version="1.13.0" />
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="$(MicrosoftAspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreVersion)" />
     <!-- Transitive security pin: Microsoft.AspNetCore.OpenApi 10.0.9 pulls
@@ -84,7 +84,7 @@
   </ItemGroup>
   <!-- Serialization -->
   <ItemGroup>
-    <PackageVersion Include="Google.Protobuf" Version="3.35.1" />
+    <PackageVersion Include="Google.Protobuf" Version="3.36.1" />
     <PackageVersion Include="Grpc.Tools" Version="2.83.0" />
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
