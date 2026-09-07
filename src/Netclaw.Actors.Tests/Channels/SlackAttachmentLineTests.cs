@@ -93,6 +93,7 @@ public sealed class SlackAttachmentLineTests
 
             Assert.EndsWith("image_1.png", renamedPath, StringComparison.Ordinal);
             Assert.Contains("path=\"inbox/image_1.png\"", projection.Line, StringComparison.Ordinal);
+            Assert.Contains(AttachmentNotes.NativeContentAvailable, projection.Line, StringComparison.Ordinal);
             Assert.True(File.Exists(Path.Combine(sessionDir, "inbox", "image_1.png")));
             Assert.NotNull(projection.InlineContent);
         }
@@ -177,6 +178,7 @@ public sealed class SlackAttachmentLineTests
             Assert.NotNull(projection.InlineContent);
             Assert.Equal(MimeTypeCatalog.AudioWav, projection.InlineContent.MediaType);
             Assert.Contains(AttachmentNotes.AudioTranscodedToWav, projection.Line, StringComparison.Ordinal);
+            Assert.Contains(AttachmentNotes.NativeContentAvailable, projection.Line, StringComparison.Ordinal);
             Assert.Null(projection.UnexpectedTranscodeError);
         }
         finally

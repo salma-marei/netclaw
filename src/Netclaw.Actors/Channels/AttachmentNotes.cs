@@ -16,6 +16,13 @@ namespace Netclaw.Actors.Channels;
 public static class AttachmentNotes
 {
     /// <summary>
+    /// Current-turn guidance for content that the provider receives natively.
+    /// This guidance prevents prior refusal text from redirecting the model to tool discovery.
+    /// </summary>
+    public const string NativeContentAvailable =
+        "native content is available in this turn; inspect it directly without tool search";
+
+    /// <summary>
     /// Model-modality gap note for an image attachment on a model that
     /// does not report <c>ModelModality.Image</c> as an input modality.
     /// MUST begin with <c>"current model has no image modality"</c> per
@@ -48,6 +55,14 @@ public static class AttachmentNotes
     /// </summary>
     public const string FormatNotInlineable =
         "format not inlineable; use file_read or shell_execute to process";
+
+    /// <summary>
+    /// Note for an Opus stream that decoded successfully but carries no
+    /// audible content. MUST begin with <c>"decoded audio is silent"</c> so
+    /// the agent's dynamic-context hint can detect this class.
+    /// </summary>
+    public const string AudioDecodedSilent =
+        "decoded audio is silent; recording carries no audible content";
 
     /// <summary>
     /// Informational note for an audio attachment that the model can hear only

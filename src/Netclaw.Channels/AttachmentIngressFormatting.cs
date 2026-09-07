@@ -93,12 +93,24 @@ public static class AttachmentIngressFormatting
 
         if (action == AttachmentInlineDecision.AttachmentInlineAction.TranscodeAndInline)
         {
-            var line = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined: true, note);
+            var line = BuildAttachmentLine(
+                filename, mimeType, size, relativePath, inlined: true, BuildInlineNote(note));
             var bytes = await File.ReadAllBytesAsync(inboxPath, cancellationToken);
             try
             {
                 var wav = AudioTranscoder.TranscodeOpusOggToWav(bytes, maxDecodedBytes);
                 return new AttachmentIngressProjection(line, new DataContent(wav, MimeTypeCatalog.AudioWav), Inlined: true);
+            }
+            catch (AudioSilenceException)
+            {
+                // A real defect in Concentus 2.2.2 decodes some Telegram speech
+                // streams to pure silence; a silent recording is also a legit
+                // user mistake. Either way the audio must not reach the model:
+                // surface a silence-specific outcome so the channel can tell
+                // the user their recording has no audible content.
+                var silentLine = BuildAttachmentLine(
+                    filename, mimeType, size, relativePath, inlined: false, AttachmentNotes.AudioDecodedSilent);
+                return new AttachmentIngressProjection(silentLine, InlineContent: null, Inlined: false, SilentDecode: true);
             }
             catch (AudioTranscodeException)
             {
@@ -119,10 +131,15 @@ public static class AttachmentIngressFormatting
             }
         }
 
-        var inlineLine = BuildAttachmentLine(filename, mimeType, size, relativePath, inlined: true, note);
+        var inlineLine = BuildAttachmentLine(
+            filename, mimeType, size, relativePath, inlined: true, BuildInlineNote(note));
         var inlineBytes = await File.ReadAllBytesAsync(inboxPath, cancellationToken);
         return new AttachmentIngressProjection(inlineLine, new DataContent(inlineBytes, mimeType), Inlined: true);
     }
+
+    private static string BuildInlineNote(string? note) => string.IsNullOrEmpty(note)
+        ? AttachmentNotes.NativeContentAvailable
+        : $"{note}; {AttachmentNotes.NativeContentAvailable}";
 
     public static async Task<IReadOnlyList<AIContent>> BuildAcceptedContentsAsync(
         string inboxPath,
@@ -155,4 +172,5 @@ public readonly record struct AttachmentIngressProjection(
     string Line,
     DataContent? InlineContent,
     bool Inlined,
-    string? UnexpectedTranscodeError = null);
+    string? UnexpectedTranscodeError = null,
+    bool SilentDecode = false);
