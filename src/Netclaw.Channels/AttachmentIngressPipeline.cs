@@ -132,7 +132,7 @@ public static class AttachmentIngressPipeline
             log.Warning(
                 "attachment_rejected name={Name} mime={Mime} reason=empty-download",
                 name, declaredMimeType.Value);
-            TryDeleteTemp(log, downloadResult.FilePath);
+            TryDeleteFile(log, downloadResult.FilePath);
             return Reject($"`{name}` downloaded as zero bytes.");
         }
 
@@ -141,7 +141,7 @@ public static class AttachmentIngressPipeline
 
         if (verification is not ContentVerificationResult.Verified verified)
         {
-            TryDeleteTemp(log, downloadResult.FilePath);
+            TryDeleteFile(log, downloadResult.FilePath);
             switch (verification)
             {
                 case ContentVerificationResult.ScanThrew st:
@@ -189,7 +189,7 @@ public static class AttachmentIngressPipeline
             log.Warning(ex,
                 "attachment_rejected name={Name} reason=collision-exhausted",
                 name);
-            TryDeleteTemp(log, downloadResult.FilePath);
+            TryDeleteFile(log, downloadResult.FilePath);
             return Reject($"Too many attachments named `{name}` in this session — please rename and try again.");
         }
         catch (Exception ex)
@@ -197,7 +197,7 @@ public static class AttachmentIngressPipeline
             log.Error(ex,
                 "attachment_rejected name={Name} reason=inbox-write-failed",
                 name);
-            TryDeleteTemp(log, downloadResult.FilePath);
+            TryDeleteFile(log, downloadResult.FilePath);
             return Reject($"Couldn't save `{name}` — please try again later.");
         }
 
@@ -218,6 +218,34 @@ public static class AttachmentIngressPipeline
                 name, verifiedMime.Value, transcodeError);
         }
 
+        if (MimeTypeCatalog.GetMediaKind(verifiedMime) == MediaKind.Audio
+            && !projection.Inlined)
+        {
+            TryDeleteFile(log, inboxPath);
+
+            if (projection.SilentDecode)
+            {
+                // Concentus can decode some Telegram speech streams to pure
+                // silence; a silent recording is also a legitimate user
+                // mistake. Either way "send it as MP3" would not help — the
+                // user must know the recording carries no audible content.
+                log.Warning(
+                    "attachment_rejected name={Name} verifiedMime={VerifiedMime} reason=silent-audio",
+                    name, verifiedMime.Value);
+                return Reject($"I couldn't hear anything in `{name}`. " +
+                    "Check that the recording has sound, then try again.");
+            }
+
+            log.Warning(
+                "attachment_rejected name={Name} verifiedMime={VerifiedMime} reason=audio-not-inlineable",
+                name, verifiedMime.Value);
+
+            var reason = inputModalities.HasFlag(ModelModality.Audio)
+                ? $"I couldn't prepare `{name}` for model audio input. Send the audio as MP3 or WAV, then try again."
+                : $"I can't send `{name}` to the current model because it does not support audio input. Select an audio-capable model, then try again.";
+            return Reject(reason);
+        }
+
         log.Info(
             "attachment_accepted name={Name} declaredMime={DeclaredMime} verifiedMime={VerifiedMime} size={Size} category={Category} inlined={Inlined}",
             name, declaredMimeType.Value, verifiedMime.Value, downloadResult.BytesWritten, verifiedCategory, projection.Inlined);
@@ -234,16 +262,17 @@ public static class AttachmentIngressPipeline
 
     private static string FormatBytes(long size) => AttachmentIngressFormatting.FormatBytes(size);
 
-    private static void TryDeleteTemp(ILoggingAdapter log, string tempPath)
+    private static void TryDeleteFile(ILoggingAdapter log, string path)
     {
         try
         {
-            if (File.Exists(tempPath))
-                File.Delete(tempPath);
+            if (File.Exists(path))
+                File.Delete(path);
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Failed to clean up staged attachment file {Path}", tempPath);
+            log.Error(ex, "Failed to clean up attachment file {Path}", path);
         }
     }
+
 }
