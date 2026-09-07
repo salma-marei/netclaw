@@ -22,6 +22,9 @@ internal static class LlmFailureClassifier
         if (cause is null)
             return GenericFailureMessage;
 
+        if (ContainsRejectedAudioInput(cause))
+            return $"The LLM provider rejected audio input for model '{model.ModelId}'. Select a provider and model that support direct audio input, then try again.";
+
         // ProviderException already carries a user-safe message — provider
         // transport layers (OpenAiCompatibleChatClient etc.) curate this so
         // we don't have to.
@@ -141,4 +144,20 @@ internal static class LlmFailureClassifier
         || message.Contains("must alternate", StringComparison.OrdinalIgnoreCase)
         || message.Contains("invalid role", StringComparison.OrdinalIgnoreCase)
         || message.Contains("tools` must not be an empty array", StringComparison.Ordinal);
+
+    private static bool ContainsRejectedAudioInput(Exception exception)
+    {
+        Exception? current = exception;
+        while (current is not null)
+        {
+            if (current.Message.Contains("input_audio", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("audio input", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("audio modality", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            current = current.InnerException;
+        }
+
+        return false;
+    }
 }

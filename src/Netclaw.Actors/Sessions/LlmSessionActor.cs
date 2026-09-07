@@ -793,7 +793,10 @@ public sealed class LlmSessionActor : ReceivePersistentActor, IWithTimers
                     _log.Warning("LLM produced {Kind} response ({ThinkingChars} chars, truncated={Truncated}) — retrying with nudge",
                         analysis.Kind, analysis.ThinkingChars, truncated);
                     _state = _state.AddSystemNudge(retry.NudgeText);
-                    FireLlmCall();
+                    // Preserve the no-tools contract across the retry: a
+                    // forceNoTools turn that retries with tools re-opens the
+                    // tool-discovery loop the flag exists to prevent.
+                    FireLlmCall(forceNoTools: _turnState.ForceNoToolsActive);
                     return;
                 case EmptyResponseAction.Fail fail:
                     _log.Warning("LLM produced {Kind} response — failing turn", analysis.Kind);
@@ -2352,7 +2355,10 @@ public sealed class LlmSessionActor : ReceivePersistentActor, IWithTimers
         TryReplyAck();
         _recallManager.ResetForNewTurn();
         _compactionOverflowRetryCount = 0;
-        FireInitialTurnLlmCall(executableUserContent);
+        var audioTurn = mediaRefs.Any(reference =>
+            reference.Modality == (int)MediaModality.Audio
+            || reference.MimeType.Value.StartsWith("audio/", StringComparison.OrdinalIgnoreCase));
+        FireInitialTurnLlmCall(executableUserContent, forceNoTools: audioTurn);
         TransitionTo(SessionPhase.Processing);
     }
 
@@ -4959,14 +4965,14 @@ public sealed class LlmSessionActor : ReceivePersistentActor, IWithTimers
         _buffer.Clear();
     }
 
-    private void FireInitialTurnLlmCall(string? recallQuery)
+    private void FireInitialTurnLlmCall(string? recallQuery, bool forceNoTools = false)
     {
         _turnRestartNotice = _pendingRestartNotice;
         _pendingRestartNotice = null;
 
         try
         {
-            FireLlmCall(recallQuery);
+            FireLlmCall(recallQuery, forceNoTools);
         }
         finally
         {

@@ -269,6 +269,29 @@ public class SessionStateTests
     }
 
     [Fact]
+    public void StripMediaFromLastUserMessage_removes_only_inline_attachment_announcements()
+    {
+        var media = new SerializableMediaReference
+        {
+            RelativePath = "voice.wav",
+            MimeType = new Netclaw.Media.MimeType("audio/wav"),
+            Modality = (int)MediaModality.Audio,
+            FileSizeBytes = 16
+        };
+        var content = "Describe this audio\n"
+            + "[attachment] name=\"voice.ogg\" inlined=\"true\"\n"
+            + "[attachment] name=\"notes.pdf\" inlined=\"false\"";
+        var state = SessionState.Empty.AddUserMessage(content, [media]);
+
+        var result = state.StripMediaFromLastUserMessage();
+
+        var message = Assert.Single(result.History);
+        Assert.Empty(message.MediaReferences);
+        Assert.DoesNotContain("voice.ogg", message.Content, StringComparison.Ordinal);
+        Assert.Contains("notes.pdf", message.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FindLastUserMessage_returns_null_when_no_user_messages()
     {
         var state = WithSystemPrompt("System");

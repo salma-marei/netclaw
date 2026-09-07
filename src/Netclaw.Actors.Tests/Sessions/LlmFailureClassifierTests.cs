@@ -47,6 +47,18 @@ public class LlmFailureClassifierTests
         Assert.Contains("timed out", message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void RejectedAudioInput_GetsActionableMessage()
+    {
+        var ex = new HttpRequestException("Base64 format error in input_audio");
+
+        var message = LlmFailureClassifier.ExtractUserMessage(ex, Model);
+
+        Assert.Contains("rejected audio input", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("test-model", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("transport error", message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.Unauthorized, "401")]
     [InlineData(HttpStatusCode.Forbidden, "403")]

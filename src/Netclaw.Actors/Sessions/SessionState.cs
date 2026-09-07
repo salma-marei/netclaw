@@ -368,8 +368,8 @@ public sealed record SessionState
     }
 
     /// <summary>
-    /// Remove the media references from the last real user message in history,
-    /// preserving the message text. A failed model/provider request must not
+    /// Remove the media references and their inline attachment announcements
+    /// from the last real user message. A failed model/provider request must not
     /// leave its media behind: the assembler re-attaches every persisted
     /// <see cref="SerializableChatMessage.MediaReferences"/> on each later
     /// request, so a provider rejection (e.g. a 400 on input_audio) would
@@ -390,12 +390,24 @@ public sealed record SessionState
             {
                 History = History.SetItem(i, message with
                 {
+                    Content = RemoveInlineAttachmentAnnouncements(message.Content),
                     MediaReferences = Array.Empty<SerializableMediaReference>()
                 })
             };
         }
 
         return this;
+    }
+
+    private static string RemoveInlineAttachmentAnnouncements(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return content;
+
+        return string.Join('\n', content
+            .Split('\n')
+            .Where(line => !line.StartsWith("[attachment]", StringComparison.Ordinal)
+                || !line.Contains("inlined=\"true\"", StringComparison.Ordinal)));
     }
 
     internal static bool IsSystemNudge(SerializableChatMessage message)

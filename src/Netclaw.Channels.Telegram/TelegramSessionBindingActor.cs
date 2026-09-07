@@ -79,8 +79,15 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
         if (!string.IsNullOrWhiteSpace(inbound.Text))
             contents.Add(new TextContent(inbound.Text));
 
+        var hasInlineAudio = false;
         if (message.Files is { Count: > 0 } files)
-            await ProcessAttachmentsAsync(files, inbound.AclDecision.Audience, contents);
+            hasInlineAudio = await ProcessAttachmentsAsync(files, inbound.AclDecision.Audience, contents);
+
+        if (string.IsNullOrWhiteSpace(inbound.Text) && hasInlineAudio)
+        {
+            contents.Insert(0, new TextContent(
+                "Follow the request spoken in the attached audio. Listen to the native audio directly."));
+        }
 
         if (contents.Count == 0)
             return;
@@ -186,7 +193,7 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
             (generation, cause) => self.Tell(new OutputTerminated(generation, cause)));
     }
 
-    private async Task ProcessAttachmentsAsync(
+    private async Task<bool> ProcessAttachmentsAsync(
         IReadOnlyList<TelegramFileReference> files,
         TrustAudience audience,
         List<AIContent> contents)
@@ -201,7 +208,7 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
             await _dependencies.Transport.SendTextAsync(
                 _chatId.Value,
                 $"I can only accept up to {policy.MaxFilesPerMessage} files in one message.");
-            return;
+            return false;
         }
 
         var inputModalities = _dependencies.ModelCapabilities.InputModalities;
@@ -212,6 +219,7 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
             _sessionId,
             _dependencies.Paths.SessionsDirectory);
         var acceptedLines = new List<string>();
+        var hasInlineAudio = false;
 
         foreach (var file in files)
         {
@@ -234,7 +242,10 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
                 case AttachmentIngestOutcome.Accepted accepted:
                     acceptedLines.Add(accepted.Line);
                     if (accepted.Inline is { } inline)
+                    {
                         contents.Add(inline);
+                        hasInlineAudio |= inline.MediaType?.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) == true;
+                    }
                     break;
                 case AttachmentIngestOutcome.Rejected rejected:
                     await _dependencies.Transport.SendTextAsync(_chatId.Value, rejected.UserFacingReason);
@@ -244,6 +255,8 @@ internal sealed class TelegramSessionBindingActor : ReceiveActor, IWithTimers
 
         if (acceptedLines.Count > 0)
             contents.Add(new TextContent(string.Join('\n', acceptedLines)));
+
+        return hasInlineAudio;
     }
 
     private async Task HandleOutputAsync(OutputReceived message)

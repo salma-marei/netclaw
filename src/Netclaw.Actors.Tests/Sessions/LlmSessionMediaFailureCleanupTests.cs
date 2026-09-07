@@ -94,7 +94,7 @@ public class LlmSessionMediaFailureCleanupTests : LlmSessionTestBase
             await sessionManager.Ask<CommandAck>(new SendUserMessage
             {
                 SessionId = sessionId,
-                Content = "Describe this image",
+                Content = "Describe this audio\n[attachment] name=\"voice.ogg\" mime=\"audio/ogg\" size=123 path=\"inbox/voice.ogg\" inlined=\"true\"",
                 MediaReferences =
                 [
                     new SerializableMediaReference
@@ -139,6 +139,9 @@ public class LlmSessionMediaFailureCleanupTests : LlmSessionTestBase
             Assert.DoesNotContain(
                 calls[1].SelectMany(m => m.Contents).OfType<DataContent>(),
                 dc => dc.Data.Length > 0);
+            Assert.DoesNotContain(
+                calls[1].SelectMany(m => m.Contents).OfType<TextContent>(),
+                text => text.Text?.Contains("[attachment]", StringComparison.Ordinal) == true);
         }
         finally
         {
